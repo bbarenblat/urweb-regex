@@ -1,0 +1,50 @@
+#                                                                   -*- conf -*-
+
+# Editor backup files
+*~
+\#*
+.\#*
+
+# aclocal
+aclocal.m4
+autom4te.cache/
+
+# libtoolize
+ltmain.sh
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
+
+# autoconf
+configure
+
+# autoheader
+config.h.in
+
+# automake
+Makefile.in
+compile
+config.guess
+config.sub
+depcomp
+install-sh
+missing
+
+# configure
+.deps/
+Makefile
+config.h
+config.log
+config.status
+libtool
+stamp-*
+
+# make
+.dirstamp
+*.la
+*.lo
+*.o
+
+.libs/
