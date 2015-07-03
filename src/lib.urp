@@ -1,0 +1,5 @@
+ffi regex__FFI
+include regex__FFI.h
+link -lurweb_regex
+
+regex
