@@ -20,12 +20,11 @@ extern "C" {
 
 #include <stddef.h>
 
-#include <regex.h>
 #include <urweb/urweb_cpp.h>
 
 typedef struct {
   char* text;
-  regex_t* compiled;
+  void* compiled;
 } uw_Regex__FFI_regex;
 
 typedef struct {
@@ -57,4 +56,4 @@ uw_Regex__FFI_match uw_Regex__FFI_do_match(struct uw_context*,
 }
 #endif
 
-#endif  // URWEB_REGEX__FFI_H
+#endif  /* URWEB_REGEX__FFI_H */
