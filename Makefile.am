@@ -29,7 +29,8 @@ CXXFLAGS = \
 CXXFLAGS += \
 	-Weverything \
 	-Wno-c++98-compat \
-	-Wno-padded
+	-Wno-padded \
+	-Wno-switch-enum
 
 LDFLAGS = \
 	-Wl,-Bsymbolic-functions \
