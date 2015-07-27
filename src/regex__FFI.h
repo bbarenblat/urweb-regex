@@ -22,16 +22,11 @@ extern "C" {
 
 #include <urweb/urweb_cpp.h>
 
-typedef struct {
-  char* text;
-  void* compiled;
-} uw_Regex__FFI_regex;
+typedef void* uw_Regex__FFI_regex;
 
 typedef struct {
   char* haystack;
-  int succeeded;
-  unsigned n_matches;
-  regmatch_t* matches;
+  void* result;
 } uw_Regex__FFI_match;
 
 uw_Basis_bool uw_Regex__FFI_succeeded(struct uw_context*,

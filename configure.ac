@@ -24,10 +24,6 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CXX([clang++])
 AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
-AC_CHECK_HEADERS([regex.h],
-  [],
-  [AC_MSG_FAILURE([a POSIX-compatible regex.h is required])])
-
 AC_CHECK_HEADERS([urweb/urweb_cpp.h],
   [],
   [AC_MSG_FAILURE([Ur/Web headers are required])])
