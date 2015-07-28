@@ -16,7 +16,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 CPPFLAGS = \
 	-Wall \
-	-D_FORTIFY_SOURCE=2
+	-D_FORTIFY_SOURCE=2 \
+	$(BOOST_CPPFLAGS)
 
 CXXFLAGS = \
 	-std=c++11 \
@@ -53,7 +54,8 @@ liburweb_regex_la_DATA = \
 
 liburweb_regex_la_LIBADD = -lurweb
 liburweb_regex_la_LDFLAGS = \
-	-export-symbols-regex '^uw_Regex_'
+	-export-symbols-regex '^uw_Regex_' \
+	$(BOOST_LDFLAGS)
 
 liburweb_regex_ladir = $(datadir)/urweb/ur/regex
 
