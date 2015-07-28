@@ -12,17 +12,18 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-#include "regex__FFI.h"
+#include "src/regex__FFI.h"
 
+#include <cstdio>
 #include <cstring>
-#include <regex>
+#include <regex>  // NOLINT(build/c++11)
 
-#include <boost/numeric/conversion/cast.hpp>
+#include <boost/numeric/conversion/cast.hpp>  // NOLINT(build/include_order)
 extern "C" {
-#include <urweb/urweb_cpp.h>
+#include <urweb/urweb_cpp.h>  // NOLINT(build/include_order)
 }
 
-#include "config.h"
+#include "./config.h"
 
 namespace {
 
@@ -89,7 +90,7 @@ uw_Basis_int uw_Regex__FFI_n_subexpression_matches(
 
 uw_Basis_string uw_Regex__FFI_subexpression_match(
     uw_context* const context,
-    const uw_Regex__FFI_match match, 
+    const uw_Regex__FFI_match match,
     const uw_Basis_int match_index_signed) {
   const std::cmatch* const match_result =
       reinterpret_cast<std::cmatch*>(match.result);
@@ -100,10 +101,13 @@ uw_Basis_string uw_Regex__FFI_subexpression_match(
   const auto matched_substring = (*match_result)[match_index + 1];
   // Save the matched substring.
   const std::size_t result_length =
-      Number<std::size_t>(context,matched_substring.length());
+      Number<std::size_t>(context, matched_substring.length());
   uw_Basis_string result =
       reinterpret_cast<uw_Basis_string>(uw_malloc(context, result_length + 1));
-  std::strcpy(result, matched_substring.str().c_str());
+  Assert(context,
+         std::snprintf(result, result_length + 1, "%s",
+                       matched_substring.str().c_str()) >= 0,
+         "regex: snprintf failed during match");
   return result;
 }
 
@@ -119,7 +123,7 @@ uw_Regex__FFI_regex uw_Regex__FFI_compile(uw_context* const context,
          uw_register_transactional(context, result,
                                    nullptr, nullptr, DeleteRegex) == 0,
          "regex: could not register DeleteRegex finalizer");
-  auto flags = std::regex_constants::extended; 
+  auto flags = std::regex_constants::extended;
   if (!case_sensitive) {
     flags |= std::regex_constants::icase;
   }
@@ -146,9 +150,13 @@ uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
   uw_Regex__FFI_match result;
   // Make a duplicate of the string to match against, so if it goes out of
   // scope in the calling Ur code, we still have it.
+  const auto haystack_length = std::strlen(haystack);
   result.haystack =
-      reinterpret_cast<char*>(uw_malloc(context, std::strlen(haystack)));
-  std::strcpy(result.haystack, haystack);
+      reinterpret_cast<char*>(uw_malloc(context, haystack_length + 1));
+  Assert(context,
+         std::snprintf(result.haystack, haystack_length + 1, "%s",
+                       haystack) >= 0,
+         "regex: snprintf failed during match");
   // Allocate to store the match information.
   auto* match_results = new std::cmatch;
   Assert(context,
