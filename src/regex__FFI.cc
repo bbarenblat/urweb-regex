@@ -38,8 +38,8 @@ void Assert(uw_context* const context, const bool condition,
   }
 }
 
-void Assert(uw_context* const context,
-            const bool condition, const char* const message) {
+void Assert(uw_context* const context, const bool condition,
+            const char* const message) {
   Assert(context, condition, FATAL, message);
 }
 
@@ -53,7 +53,7 @@ void DeleteMatchResults(void* match_result,
 }
 
 // Bounds-checked numeric type conversion
-template<typename Target, typename Source>
+template <typename Target, typename Source>
 Target Number(uw_context* const context, Source arg) {
   try {
     return boost::numeric_cast<Target>(arg);
@@ -74,8 +74,7 @@ uw_Basis_bool uw_Regex__FFI_succeeded([[gnu::unused]] uw_context* const context,
 }
 
 uw_Basis_int uw_Regex__FFI_n_subexpression_matches(
-    uw_context* const context,
-    const uw_Regex__FFI_match match) {
+    uw_context* const context, const uw_Regex__FFI_match match) {
   const std::cmatch::size_type n_matches =
       reinterpret_cast<std::cmatch*>(match.result)->size();
   if (n_matches == 0) {
@@ -89,8 +88,7 @@ uw_Basis_int uw_Regex__FFI_n_subexpression_matches(
 }
 
 uw_Basis_string uw_Regex__FFI_subexpression_match(
-    uw_context* const context,
-    const uw_Regex__FFI_match match,
+    uw_context* const context, const uw_Regex__FFI_match match,
     const uw_Basis_int match_index_signed) {
   const std::cmatch* const match_result =
       reinterpret_cast<std::cmatch*>(match.result);
@@ -104,9 +102,8 @@ uw_Basis_string uw_Regex__FFI_subexpression_match(
       Number<std::size_t>(context, matched_substring.length());
   uw_Basis_string result =
       reinterpret_cast<uw_Basis_string>(uw_malloc(context, result_length + 1));
-  Assert(context,
-         std::snprintf(result, result_length + 1, "%s",
-                       matched_substring.str().c_str()) >= 0,
+  Assert(context, std::snprintf(result, result_length + 1, "%s",
+                                matched_substring.str().c_str()) >= 0,
          "regex: snprintf failed during match");
   return result;
 }
@@ -119,9 +116,8 @@ uw_Regex__FFI_regex uw_Regex__FFI_compile(uw_context* const context,
   // run a finalizer on it, and Ur finalizers can only reference addresses that
   // are not managed by Ur.
   auto* result = new std::regex;
-  Assert(context,
-         uw_register_transactional(context, result,
-                                   nullptr, nullptr, DeleteRegex) == 0,
+  Assert(context, uw_register_transactional(context, result, nullptr, nullptr,
+                                            DeleteRegex) == 0,
          "regex: could not register DeleteRegex finalizer");
   auto flags = std::regex_constants::extended;
   if (!case_sensitive) {
@@ -134,11 +130,10 @@ uw_Regex__FFI_regex uw_Regex__FFI_compile(uw_context* const context,
       case std::regex_constants::error_space:
       case std::regex_constants::error_stack:
         // We ran out of memory.
-        uw_error(context, BOUNDED_RETRY,
-                 "regex: compilation failed: %s", e.what());
+        uw_error(context, BOUNDED_RETRY, "regex: compilation failed: %s",
+                 e.what());
       default:
-        uw_error(context, FATAL,
-                 "regex: compilation failed: %s", e.what());
+        uw_error(context, FATAL, "regex: compilation failed: %s", e.what());
     }
   }
   return result;
@@ -153,15 +148,13 @@ uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
   const auto haystack_length = std::strlen(haystack);
   result.haystack =
       reinterpret_cast<char*>(uw_malloc(context, haystack_length + 1));
-  Assert(context,
-         std::snprintf(result.haystack, haystack_length + 1, "%s",
-                       haystack) >= 0,
+  Assert(context, std::snprintf(result.haystack, haystack_length + 1, "%s",
+                                haystack) >= 0,
          "regex: snprintf failed during match");
   // Allocate to store the match information.
   auto* match_results = new std::cmatch;
-  Assert(context,
-         uw_register_transactional(context, match_results,
-                                   nullptr, nullptr, DeleteMatchResults) == 0,
+  Assert(context, uw_register_transactional(context, match_results, nullptr,
+                                            nullptr, DeleteMatchResults) == 0,
          "regex: could not register DeleteMatchResults finalizer");
   result.result = match_results;
   // Execute the regex on the saved haystack, not the original one.
