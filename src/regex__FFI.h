@@ -11,8 +11,10 @@ under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 CONDITIONS OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License. */
 
+/* clang-format off */
 #ifndef URWEB_REGEX__FFI_H_  /* NOLINT(build/header_guard) */
 #define URWEB_REGEX__FFI_H_
+/* clang-format on */
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,4 +53,6 @@ uw_Regex__FFI_match uw_Regex__FFI_do_match(struct uw_context*,
 }
 #endif
 
+/* clang-format off */
 #endif  /* URWEB_REGEX__FFI_H_ */  /* NOLINT(build/header_guard) */
+/* clang-format on */
