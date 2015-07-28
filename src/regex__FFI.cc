@@ -14,12 +14,10 @@
 
 #include "regex__FFI.h"
 
-#include <regex.h>
-
 #include <cstring>
-#include <limits>
 #include <regex>
 
+#include <boost/numeric/conversion/cast.hpp>
 extern "C" {
 #include <urweb/urweb_cpp.h>
 }
@@ -54,18 +52,13 @@ void DeleteMatchResults(void* match_result,
 }
 
 // Bounds-checked numeric type conversion
-template<typename T, typename U>
-U Number(uw_context* const context, const T input) {
-  Assert(context, input <= std::numeric_limits<U>::max(),
-         "regex: detected overflow during numeric conversion");
-  if (std::numeric_limits<T>::is_signed == std::numeric_limits<U>::is_signed) {
-    Assert(context, std::numeric_limits<U>::lowest() <= input,
-           "regex: detected underflow during numeric conversion");
-  } else if (std::numeric_limits<T>::is_signed) {
-    Assert(context, 0 <= input,
-           "regex: detected underflow during numeric conversion");
+template<typename Target, typename Source>
+Target Number(uw_context* const context, Source arg) {
+  try {
+    return boost::numeric_cast<Target>(arg);
+  } catch (const boost::numeric::bad_numeric_cast& e) {
+    uw_error(context, FATAL, "regex: %s", e.what());
   }
-  return static_cast<U>(input);
 }
 
 }  // namespace
@@ -90,7 +83,7 @@ uw_Basis_int uw_Regex__FFI_n_subexpression_matches(
   } else {
     // At least one match occurred.  Compute the number of parenthesized
     // subexpressions that got matched, and return it.
-    return Number<std::cmatch::size_type, uw_Basis_int>(context, n_matches) - 1;
+    return Number<uw_Basis_int>(context, n_matches) - 1;
   }
 }
 
@@ -101,18 +94,15 @@ uw_Basis_string uw_Regex__FFI_subexpression_match(
   const std::cmatch* const match_result =
       reinterpret_cast<std::cmatch*>(match.result);
   const std::size_t match_index =
-      Number<uw_Basis_int, std::size_t>(context, match_index_signed);
+      Number<std::size_t>(context, match_index_signed);
   Assert(context, match_index < match_result->size(),
          "regex: match does not exist");
   const auto matched_substring = (*match_result)[match_index + 1];
   // Save the matched substring.
   const std::size_t result_length =
-      Number<std::csub_match::difference_type, std::size_t>(
-          context,
-          matched_substring.length());
+      Number<std::size_t>(context,matched_substring.length());
   uw_Basis_string result =
-      reinterpret_cast<uw_Basis_string>(
-          uw_malloc(context, result_length + 1));
+      reinterpret_cast<uw_Basis_string>(uw_malloc(context, result_length + 1));
   std::strcpy(result, matched_substring.str().c_str());
   return result;
 }

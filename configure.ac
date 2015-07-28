@@ -24,6 +24,10 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CXX([clang++])
 AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
+AX_BOOST_BASE([1.48.0],
+  [],
+  [AC_MSG_FAILURE([Boost is required])])
+
 AC_CHECK_HEADERS([urweb/urweb_cpp.h],
   [],
   [AC_MSG_FAILURE([Ur/Web headers are required])])
