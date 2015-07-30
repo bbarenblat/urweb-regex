@@ -17,7 +17,7 @@ var UrWeb = { Regex: {
 _compile: function(needle_string) {
   var needle;
   try {
-    needle = new RegExp(needle_string);
+    needle = new RegExp(needle_string, "g");
   } catch (e) {
     er("regex: compilation failed");
   }
