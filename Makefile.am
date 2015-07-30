@@ -48,6 +48,7 @@ liburweb_regex_la_SOURCES = src/regex__FFI.cc
 liburweb_regex_la_DATA = \
 	src/lib.urp \
 	src/regex__FFI.h \
+	src/regex__FFI.js \
 	src/regex__FFI.urs \
 	src/regex.urs \
 	src/regex.ur

@@ -1,4 +1,5 @@
 (* Copyright 2015 the Massachusetts Institute of Technology
+Copyright 2015 Benjamin Barenblat
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License.  You may obtain a copy of the
@@ -56,22 +57,11 @@ Here's a brief syntax reminder:
   '[[:digit:]]'. *)
 
 
-(* Creating *)
-
-(* A compiled regular expression. *)
-type t
-
-(* Compiles a regular expression from a POSIX extended regular expression
-string. *)
-val compile : string -> t
-
-(* Compiles a case-insensitive regular expression from a POSIX extended regular expression string. *)
-val compile_case_insensitive : string -> t
-
-
 (* Searching *)
 
 (* Matches a regular expression against any part of a string.  Returns 'Some
 strs', where 'strs' is a list of subexpression matches, if a match succeeds, and
 'None' otherwise. *)
-val match : t -> string -> option (list string)
+val match : string (* needle *)
+         -> string (* haystack *)
+         -> option (list string)

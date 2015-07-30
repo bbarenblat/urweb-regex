@@ -1,5 +1,11 @@
 ffi regex__FFI
 include regex__FFI.h
 link -lurweb_regex
+jsFunc Regex__FFI.succeeded=UrWeb.Regex.succeeded
+jsFunc Regex__FFI.n_subexpression_matches=UrWeb.Regex.nSubexpressionMatches
+jsFunc Regex__FFI.subexpression_match=UrWeb.Regex.subexpressionMatch
+jsFunc Regex__FFI.do_match=UrWeb.Regex.doMatch
+file /cgGvSqBi.js regex__FFI.js
+script /cgGvSqBi.js
 
 regex

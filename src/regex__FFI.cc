@@ -1,4 +1,5 @@
 // Copyright (C) 2015 the Massachusetts Institute of Technology
+// Copyright (C) 2015 Benjamin Barenblat
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License.  You may obtain a copy
@@ -41,10 +42,6 @@ void Assert(uw_context* const context, const bool condition,
 void Assert(uw_context* const context, const bool condition,
             const char* const message) {
   Assert(context, condition, FATAL, message);
-}
-
-void DeleteRegex(void* regex, [[gnu::unused]] const int _will_retry) {
-  delete reinterpret_cast<std::regex*>(regex);
 }
 
 void DeleteMatchResults(void* match_result,
@@ -108,23 +105,12 @@ uw_Basis_string uw_Regex__FFI_subexpression_match(
   return result;
 }
 
-uw_Regex__FFI_regex uw_Regex__FFI_compile(uw_context* const context,
-                                          const uw_Basis_bool case_sensitive,
-                                          const uw_Basis_string input) {
-  // We'd like to stack-allocate the result--or, at least, to allocate it with
-  // uw_malloc.  Unfortunately, neither of those will work, because we need to
-  // run a finalizer on it, and Ur finalizers can only reference addresses that
-  // are not managed by Ur.
-  auto* result = new std::regex;
-  Assert(context, uw_register_transactional(context, result, nullptr, nullptr,
-                                            DeleteRegex) == 0,
-         "regex: could not register DeleteRegex finalizer");
-  auto flags = std::regex_constants::extended;
-  if (!case_sensitive) {
-    flags |= std::regex_constants::icase;
-  }
+uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
+                                           const uw_Basis_string needle_string,
+                                           const uw_Basis_string haystack) {
+  std::regex needle;
   try {
-    result->assign(input, flags);
+    needle.assign(needle_string, std::regex_constants::extended);
   } catch (const std::regex_error& e) {
     switch (e.code()) {
       case std::regex_constants::error_space:
@@ -136,12 +122,6 @@ uw_Regex__FFI_regex uw_Regex__FFI_compile(uw_context* const context,
         uw_error(context, FATAL, "regex: compilation failed: %s", e.what());
     }
   }
-  return result;
-}
-
-uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
-                                           const uw_Regex__FFI_regex needle,
-                                           const uw_Basis_string haystack) {
   uw_Regex__FFI_match result;
   // Make a duplicate of the string to match against, so if it goes out of
   // scope in the calling Ur code, we still have it.
@@ -158,7 +138,6 @@ uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
          "regex: could not register DeleteMatchResults finalizer");
   result.result = match_results;
   // Execute the regex on the saved haystack, not the original one.
-  std::regex_search(result.haystack, *match_results,
-                    *reinterpret_cast<std::regex*>(needle));
+  std::regex_search(result.haystack, *match_results, needle);
   return result;
 }

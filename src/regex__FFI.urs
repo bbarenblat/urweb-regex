@@ -1,4 +1,5 @@
 (* Copyright 2015 the Massachusetts Institute of Technology
+Copyright 2015 Benjamin Barenblat
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License.  You may obtain a copy of the
@@ -15,9 +16,6 @@ specific language governing permissions and limitations under the License. *)
 instead. *)
 
 
-(* A compiled regular expression. *)
-type regex
-
 (* Data about a match.  There is no function which returns all subexpression
 matches, as we can't build an Ur list in C. *)
 type match
@@ -26,9 +24,7 @@ val n_subexpression_matches : match -> int
 val subexpression_match : match -> int -> string
 
 
-(* Compiles a regular expression from a POSIX extended regular expression
-string. *)
-val compile : bool (* case sensitive? *) -> string -> regex
-
 (* Matches a regular expression against any part of a string. *)
-val do_match : regex -> string -> match
+val do_match : string (* needle *)
+            -> string (* haystack *)
+            -> match
