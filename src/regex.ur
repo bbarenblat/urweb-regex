@@ -37,3 +37,5 @@ fun match regex input =
         Some (loop 0)
       end
   end
+
+val replace = FFI.replace

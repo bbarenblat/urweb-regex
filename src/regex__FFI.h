@@ -44,6 +44,10 @@ uw_Regex__FFI_match uw_Regex__FFI_do_match(struct uw_context*,
                                            const uw_Basis_string,
                                            const uw_Basis_string);
 
+uw_Basis_string uw_Regex__FFI_replace(struct uw_context*, const uw_Basis_string,
+                                      const uw_Basis_string,
+                                      const uw_Basis_string);
+
 #ifdef __cplusplus
 }
 #endif

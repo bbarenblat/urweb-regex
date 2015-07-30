@@ -14,6 +14,16 @@
 
 var UrWeb = { Regex: {
 
+_compile: function(needle_string) {
+  var needle;
+  try {
+    needle = new RegExp(needle_string);
+  } catch (e) {
+    er("regex: compilation failed");
+  }
+  return needle;
+},
+
 succeeded: function(match) {
   return !!match;
 },
@@ -29,14 +39,12 @@ subexpressionMatch: function(match, n) {
   return match[n + 1];
 },
 
-doMatch: function(needle_string, haystack) {
-  var needle;
-  try {
-    needle = new RegExp(needle_string);
-  } catch (e) {
-    er("regex: compilation failed");
-  }
-  return haystack.match(needle);
+doMatch: function(needle, haystack) {
+  return haystack.match(UrWeb.Regex._compile(needle));
+},
+
+replace: function(needle, haystack, replacement) {
+  return haystack.replace(UrWeb.Regex._compile(needle), replacement);
 },
 
 }};  // UrWeb.Regex

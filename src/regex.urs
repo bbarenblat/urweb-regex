@@ -24,3 +24,10 @@ strs', where 'strs' is a list of subexpression matches, if a match succeeds, and
 val match : string (* needle *)
          -> string (* haystack *)
          -> option (list string)
+
+(* Replaces all substrings in 'haystack' that match 'needle' with the string
+'replacement.' *)
+val replace : string (* needle *)
+           -> string (* haystack *)
+           -> string (* replacement *)
+           -> string

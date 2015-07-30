@@ -5,6 +5,7 @@ jsFunc Regex__FFI.succeeded=UrWeb.Regex.succeeded
 jsFunc Regex__FFI.n_subexpression_matches=UrWeb.Regex.nSubexpressionMatches
 jsFunc Regex__FFI.subexpression_match=UrWeb.Regex.subexpressionMatch
 jsFunc Regex__FFI.do_match=UrWeb.Regex.doMatch
+jsFunc Regex__FFI.replace=UrWeb.Regex.replace
 file /cgGvSqBi.js regex__FFI.js
 script /cgGvSqBi.js
 

@@ -17,6 +17,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <regex>  // NOLINT(build/c++11)
 
 #include <boost/numeric/conversion/cast.hpp>  // NOLINT(build/include_order)
@@ -57,6 +58,25 @@ Target Number(uw_context* const context, Source arg) {
   } catch (const boost::numeric::bad_numeric_cast& e) {
     uw_error(context, FATAL, "regex: %s", e.what());
   }
+}
+
+// Compiles a regular expression.
+std::regex Compile(uw_context* const context, const char needle_string[]) {
+  std::regex needle;
+  try {
+    needle.assign(needle_string, std::regex_constants::ECMAScript);
+  } catch (const std::regex_error& e) {
+    switch (e.code()) {
+      case std::regex_constants::error_space:
+      case std::regex_constants::error_stack:
+        // We ran out of memory.
+        uw_error(context, BOUNDED_RETRY, "regex: compilation failed: %s",
+                 e.what());
+      default:
+        uw_error(context, FATAL, "regex: compilation failed: %s", e.what());
+    }
+  }
+  return needle;
 }
 
 }  // namespace
@@ -108,20 +128,7 @@ uw_Basis_string uw_Regex__FFI_subexpression_match(
 uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
                                            const uw_Basis_string needle_string,
                                            const uw_Basis_string haystack) {
-  std::regex needle;
-  try {
-    needle.assign(needle_string, std::regex_constants::ECMAScript);
-  } catch (const std::regex_error& e) {
-    switch (e.code()) {
-      case std::regex_constants::error_space:
-      case std::regex_constants::error_stack:
-        // We ran out of memory.
-        uw_error(context, BOUNDED_RETRY, "regex: compilation failed: %s",
-                 e.what());
-      default:
-        uw_error(context, FATAL, "regex: compilation failed: %s", e.what());
-    }
-  }
+  std::regex needle = Compile(context, needle_string);
   uw_Regex__FFI_match result;
   // Make a duplicate of the string to match against, so if it goes out of
   // scope in the calling Ur code, we still have it.
@@ -140,4 +147,33 @@ uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
   // Execute the regex on the saved haystack, not the original one.
   std::regex_search(result.haystack, *match_results, needle);
   return result;
+}
+
+uw_Basis_string uw_Regex__FFI_replace(uw_context* const context,
+                                      const uw_Basis_string needle_string,
+                                      const uw_Basis_string haystack,
+                                      const uw_Basis_string replacement) {
+  std::regex needle = Compile(context, needle_string);
+  // Perform the replacement.
+  std::string result;
+  try {
+    result = std::regex_replace(haystack, needle, replacement);
+  } catch (const std::regex_error& e) {
+    switch (e.code()) {
+      case std::regex_constants::error_space:
+      case std::regex_constants::error_stack:
+        // We ran out of memory.
+        uw_error(context, BOUNDED_RETRY, "regex: replacement failed: %s",
+                 e.what());
+      default:
+        uw_error(context, FATAL, "regex: replacement failed: %s", e.what());
+    }
+  }
+  // Save the result string.
+  char* const result_string =
+      reinterpret_cast<char*>(uw_malloc(context, result.length() + 1));
+  Assert(context, std::snprintf(result_string, result.length() + 1, "%s",
+                                result.c_str()) >= 0,
+         "regex: snprintf failed during replace");
+  return result_string;
 }
