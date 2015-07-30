@@ -1,4 +1,5 @@
 (* Copyright 2015 the Massachusetts Institute of Technology
+Copyright 2015 Benjamin Barenblat
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License.  You may obtain a copy of the
@@ -12,12 +13,6 @@ CONDITIONS OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License. *)
 
 structure FFI = Regex__FFI
-
-type t = FFI.regex
-
-val compile = FFI.compile True
-
-val compile_case_insensitive = FFI.compile False
 
 fun match regex input =
   (* Perform the match. *)

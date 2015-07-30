@@ -1,4 +1,5 @@
 /* Copyright (C) 2015 the Massachusetts Institute of Technology
+Copyright (C) 2015 Benjamin Barenblat
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License.  You may obtain a copy of the
@@ -24,8 +25,6 @@ extern "C" {
 
 #include <urweb/urweb_cpp.h>
 
-typedef void* uw_Regex__FFI_regex;
-
 typedef struct {
   char* haystack;
   void* result;
@@ -41,12 +40,8 @@ uw_Basis_string uw_Regex__FFI_subexpression_match(struct uw_context*,
                                                   const uw_Regex__FFI_match,
                                                   const uw_Basis_int);
 
-uw_Regex__FFI_regex uw_Regex__FFI_compile(struct uw_context*,
-                                          const uw_Basis_bool,
-                                          const uw_Basis_string);
-
 uw_Regex__FFI_match uw_Regex__FFI_do_match(struct uw_context*,
-                                           const uw_Regex__FFI_regex,
+                                           const uw_Basis_string,
                                            const uw_Basis_string);
 
 #ifdef __cplusplus
