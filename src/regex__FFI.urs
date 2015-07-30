@@ -28,3 +28,10 @@ val subexpression_match : match -> int -> string
 val do_match : string (* needle *)
             -> string (* haystack *)
             -> match
+
+(* Replaces all substrings in 'haystack' that match 'needle' with the string
+'replacement.' *)
+val replace : string (* needle *)
+           -> string (* haystack *)
+           -> string (* replacement *)
+           -> string
