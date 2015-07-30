@@ -151,8 +151,8 @@ uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
 
 uw_Basis_string uw_Regex__FFI_replace(uw_context* const context,
                                       const uw_Basis_string needle_string,
-                                      const uw_Basis_string haystack,
-                                      const uw_Basis_string replacement) {
+                                      const uw_Basis_string replacement,
+                                      const uw_Basis_string haystack) {
   std::regex needle = Compile(context, needle_string);
   // Perform the replacement.
   std::string result;

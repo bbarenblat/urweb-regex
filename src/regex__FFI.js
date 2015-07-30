@@ -43,7 +43,7 @@ doMatch: function(needle, haystack) {
   return haystack.match(UrWeb.Regex._compile(needle));
 },
 
-replace: function(needle, haystack, replacement) {
+replace: function(needle, replacement, haystack) {
   return haystack.replace(UrWeb.Regex._compile(needle), replacement);
 },
 

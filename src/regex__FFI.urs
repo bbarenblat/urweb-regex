@@ -32,6 +32,6 @@ val do_match : string (* needle *)
 (* Replaces all substrings in 'haystack' that match 'needle' with the string
 'replacement.' *)
 val replace : string (* needle *)
-           -> string (* haystack *)
            -> string (* replacement *)
+           -> string (* haystack *)
            -> string
