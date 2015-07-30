@@ -110,7 +110,7 @@ uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
                                            const uw_Basis_string haystack) {
   std::regex needle;
   try {
-    needle.assign(needle_string, std::regex_constants::extended);
+    needle.assign(needle_string, std::regex_constants::ECMAScript);
   } catch (const std::regex_error& e) {
     switch (e.code()) {
       case std::regex_constants::error_space:
