@@ -14,37 +14,42 @@
 
 var UrWeb = { Regex: {
 
-_compile: function(needle_string) {
-  var needle;
+Substring: {
+  start: function(substring) {
+    return substring.start;
+  },
+
+  length: function(substring) {
+    return substring.length;
+  },
+
+  List: {
+    length: function(list) {
+      return list.length;
+    },
+
+    get: function(list, n) {
+      return list[n];
+    },
+  },
+},
+
+doMatch: function(needle_string, haystack) {
   try {
-    needle = new RegExp(needle_string, "g");
+    var needle = new RegExp(needle_string);
   } catch (e) {
     er("regex: compilation failed");
   }
-  return needle;
-},
-
-succeeded: function(match) {
-  return !!match;
-},
-
-nSubexpressionMatches: function(match) {
-  return match.length - 1;
-},
-
-subexpressionMatch: function(match, n) {
-  if (match.length - 1 <= n) {
-    er("regex: match does not exist");
+  var result = needle.exec(haystack);
+  if (result) {
+    for (var i = 0; i < result.length; i++) {
+      result[i] = {start: haystack.indexOf(result[i]),
+                   length: result[i].length};
+    }
+  } else {
+    result = []
   }
-  return match[n + 1];
-},
-
-doMatch: function(needle, haystack) {
-  return haystack.match(UrWeb.Regex._compile(needle));
-},
-
-replace: function(needle, replacement, haystack) {
-  return haystack.replace(UrWeb.Regex._compile(needle), replacement);
+  return result;
 },
 
 }};  // UrWeb.Regex
