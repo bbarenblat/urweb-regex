@@ -15,23 +15,29 @@ specific language governing permissions and limitations under the License. *)
 (* This is an internal module.  You should use the high-level API in Regex
 instead. *)
 
+(* Ideally, these types would be declared in a nice module hierarchy.
+Unfortunately, Ur/Web bug #207 makes that impossible. *)
+type substring_t
+val substring_start : substring_t -> int
+val substring_length : substring_t -> int
 
-(* Data about a match.  There is no function which returns all subexpression
-matches, as we can't build an Ur list in C. *)
-type match
-val succeeded : match -> bool
-val n_subexpression_matches : match -> int
-val subexpression_match : match -> int -> string
+type substring_list_t
+val substring_list_length : substring_list_t -> int
+val substring_list_get : substring_list_t -> int -> substring_t
 
+(* Matches a regular expression against any part of a string.  Returns a list of
+groups.  The zeroth element of each match represents the match as a whole.
+Thus, matching /a(b*c)d/ against
 
-(* Matches a regular expression against any part of a string. *)
+              1    1
+    0    5    0    5
+    __acd__abbbbcd__
+
+will yield
+
+    [(2,3), (3, 1)]
+
+where (x,y) is a substring with start x and length y. *)
 val do_match : string (* needle *)
             -> string (* haystack *)
-            -> match
-
-(* Replaces all substrings in 'haystack' that match 'needle' with the string
-'replacement.' *)
-val replace : string (* needle *)
-           -> string (* replacement *)
-           -> string (* haystack *)
-           -> string
+            -> substring_list_t

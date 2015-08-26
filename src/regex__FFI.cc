@@ -15,10 +15,9 @@
 
 #include "src/regex__FFI.h"
 
-#include <cstdio>
-#include <cstring>
-#include <string>
 #include <regex>  // NOLINT(build/c++11)
+#include <stdexcept>
+#include <vector>
 
 #include <boost/numeric/conversion/cast.hpp>  // NOLINT(build/include_order)
 extern "C" {
@@ -28,6 +27,10 @@ extern "C" {
 #include "./config.h"
 
 namespace {
+
+using Int = uw_Basis_int;
+using Substring = uw_Regex__FFI_substring_t;
+using SubstringList = uw_Regex__FFI_substring_list_t;
 
 // Asserts a condition without crashing or releasing information about where the
 // error occurred.  This function is essential for web programming, where an
@@ -43,11 +46,6 @@ void Assert(uw_context* const context, const bool condition,
 void Assert(uw_context* const context, const bool condition,
             const char* const message) {
   Assert(context, condition, FATAL, message);
-}
-
-void DeleteMatchResults(void* match_result,
-                        [[gnu::unused]] const int _will_retry) {
-  delete reinterpret_cast<std::cmatch*>(match_result);
 }
 
 // Bounds-checked numeric type conversion
@@ -79,101 +77,56 @@ std::regex Compile(uw_context* const context, const char needle_string[]) {
   return needle;
 }
 
+// Treats 'list' as a 'std::vector<Substring>*' and 'delete's it.
+void DeleteGroupList(void* list, [[gnu::unused]] const int will_retry) {
+  delete reinterpret_cast<std::vector<Substring>*>(list);
+}
+
 }  // namespace
 
-uw_Basis_bool uw_Regex__FFI_succeeded([[gnu::unused]] uw_context* const context,
-                                      const uw_Regex__FFI_match match) {
-  if (reinterpret_cast<std::cmatch*>(match.result)->empty()) {
-    return uw_Basis_False;
-  } else {
-    return uw_Basis_True;
-  }
+Int uw_Regex__FFI_substring_start(uw_context* const context,
+                                  const Substring substring) {
+  return Number<Int>(context, substring.start);
 }
 
-uw_Basis_int uw_Regex__FFI_n_subexpression_matches(
-    uw_context* const context, const uw_Regex__FFI_match match) {
-  const std::cmatch::size_type n_matches =
-      reinterpret_cast<std::cmatch*>(match.result)->size();
-  if (n_matches == 0) {
-    // Nothing got matched.
-    return 0;
-  } else {
-    // At least one match occurred.  Compute the number of parenthesized
-    // subexpressions that got matched, and return it.
-    return Number<uw_Basis_int>(context, n_matches) - 1;
-  }
+Int uw_Regex__FFI_substring_length(uw_context* const context,
+                                   const Substring substring) {
+  return Number<Int>(context, substring.length);
 }
 
-uw_Basis_string uw_Regex__FFI_subexpression_match(
-    uw_context* const context, const uw_Regex__FFI_match match,
-    const uw_Basis_int match_index_signed) {
-  const std::cmatch* const match_result =
-      reinterpret_cast<std::cmatch*>(match.result);
-  const std::size_t match_index =
-      Number<std::size_t>(context, match_index_signed);
-  Assert(context, match_index < match_result->size(),
-         "regex: match does not exist");
-  const auto matched_substring = (*match_result)[match_index + 1];
-  // Save the matched substring.
-  const std::size_t result_length =
-      Number<std::size_t>(context, matched_substring.length());
-  uw_Basis_string result =
-      reinterpret_cast<uw_Basis_string>(uw_malloc(context, result_length + 1));
-  Assert(context, std::snprintf(result, result_length + 1, "%s",
-                                matched_substring.str().c_str()) >= 0,
-         "regex: snprintf failed during match");
-  return result;
+Int uw_Regex__FFI_substring_list_length(uw_context* const context,
+                                        const SubstringList list) {
+  return Number<Int>(
+      context, reinterpret_cast<const std::vector<Substring>*>(list)->size());
 }
 
-uw_Regex__FFI_match uw_Regex__FFI_do_match(uw_context* const context,
-                                           const uw_Basis_string needle_string,
-                                           const uw_Basis_string haystack) {
-  std::regex needle = Compile(context, needle_string);
-  uw_Regex__FFI_match result;
-  // Make a duplicate of the string to match against, so if it goes out of
-  // scope in the calling Ur code, we still have it.
-  const auto haystack_length = std::strlen(haystack);
-  result.haystack =
-      reinterpret_cast<char*>(uw_malloc(context, haystack_length + 1));
-  Assert(context, std::snprintf(result.haystack, haystack_length + 1, "%s",
-                                haystack) >= 0,
-         "regex: snprintf failed during match");
-  // Allocate to store the match information.
-  auto* match_results = new std::cmatch;
-  Assert(context, uw_register_transactional(context, match_results, nullptr,
-                                            nullptr, DeleteMatchResults) == 0,
-         "regex: could not register DeleteMatchResults finalizer");
-  result.result = match_results;
-  // Execute the regex on the saved haystack, not the original one.
-  std::regex_search(result.haystack, *match_results, needle);
-  return result;
-}
-
-uw_Basis_string uw_Regex__FFI_replace(uw_context* const context,
-                                      const uw_Basis_string needle_string,
-                                      const uw_Basis_string replacement,
-                                      const uw_Basis_string haystack) {
-  std::regex needle = Compile(context, needle_string);
-  // Perform the replacement.
-  std::string result;
+Substring uw_Regex__FFI_substring_list_get(uw_context* const context,
+                                           const SubstringList list,
+                                           const Int index_int) {
+  const auto index = Number<std::size_t>(context, index_int);
   try {
-    result = std::regex_replace(haystack, needle, replacement);
-  } catch (const std::regex_error& e) {
-    switch (e.code()) {
-      case std::regex_constants::error_space:
-      case std::regex_constants::error_stack:
-        // We ran out of memory.
-        uw_error(context, BOUNDED_RETRY, "regex: replacement failed: %s",
-                 e.what());
-      default:
-        uw_error(context, FATAL, "regex: replacement failed: %s", e.what());
-    }
+    return reinterpret_cast<const std::vector<Substring>*>(list)->at(index);
+  } catch (const std::out_of_range& e) {
+    uw_error(context, FATAL, "regex: index out of range", e.what());
   }
-  // Save the result string.
-  char* const result_string =
-      reinterpret_cast<char*>(uw_malloc(context, result.length() + 1));
-  Assert(context, std::snprintf(result_string, result.length() + 1, "%s",
-                                result.c_str()) >= 0,
-         "regex: snprintf failed during replace");
-  return result_string;
+}
+
+SubstringList uw_Regex__FFI_do_match(uw_context* const context,
+                                     const uw_Basis_string needle,
+                                     const uw_Basis_string haystack) {
+  // Perform the match.
+  std::cmatch match_results;
+  std::regex_search(haystack, match_results, Compile(context, needle));
+  Assert(context, match_results.ready(), "regex: search failed");
+  // Marshal the results into the form Ur expects.
+  auto* const result = new std::vector<Substring>;
+  Assert(context, uw_register_transactional(context, result, nullptr, nullptr,
+                                            DeleteGroupList) == 0,
+         "regex: could not register DeleteGroupList finalizer");
+  for (std::size_t i = 0; i < match_results.size(); i++) {
+    result->emplace_back(
+        Substring{Number<long>(context, match_results.position(i)),
+                  Number<long>(context, match_results.length(i))});
+  }
+  return result;
 }

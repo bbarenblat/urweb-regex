@@ -1,12 +1,15 @@
 ffi regex__FFI
 include regex__FFI.h
 link -lurweb_regex
-jsFunc Regex__FFI.succeeded=UrWeb.Regex.succeeded
-jsFunc Regex__FFI.n_subexpression_matches=UrWeb.Regex.nSubexpressionMatches
-jsFunc Regex__FFI.subexpression_match=UrWeb.Regex.subexpressionMatch
+jsFunc Regex__FFI.substring_start=UrWeb.Regex.Substring.start
+jsFunc Regex__FFI.substring_length=UrWeb.Regex.Substring.length
+jsFunc Regex__FFI.substring_list_length=UrWeb.Regex.Substring.List.length
+jsFunc Regex__FFI.substring_list_get=UrWeb.Regex.Substring.List.get
 jsFunc Regex__FFI.do_match=UrWeb.Regex.doMatch
-jsFunc Regex__FFI.replace=UrWeb.Regex.replace
 file /cgGvSqBi.js regex__FFI.js
 script /cgGvSqBi.js
 
+$/list
+$/option
+$/string
 regex
