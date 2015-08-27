@@ -16,8 +16,8 @@ specific language governing permissions and limitations under the License. *)
 
 This library implements ECMAScript regular expressions. *)
 
-type substring = {Start : int, Len : int}
-type match = {Whole : substring, Groups : list substring}
+type match a = {Whole : a, Groups : list a}
+type counted_substring = {Start : int, Len : int}
 
 (* Searching *)
 
@@ -25,12 +25,14 @@ type match = {Whole : substring, Groups : list substring}
 'Some match' if a match succeeds and 'None' otherwise. *)
 val match : string (* needle *)
             -> string (* haystack *)
-            -> option match
+            -> option (match string)
+val match' : string -> string -> option (match counted_substring)
 
 (* Finds _all_ matches for a regular expression in a string. *)
 val all_matches : string (* needle *)
                   -> string (* haystack *)
-                  -> list match
+                  -> list (match string)
+val all_matches' : string -> string -> list (match counted_substring)
 
 (* Replacement *)
 
@@ -44,9 +46,13 @@ val replace : string (* needle *)
 (* Transforms a string by applying a function to replace every match in the
 string. *)
 val transform_matches : string (* needle *)
-                        -> (match -> string) (* transformation *)
+                        -> (match string -> string) (* transformation *)
                         -> string (* haystack *)
                         -> string
+val transform_matches' : string
+                         -> (match counted_substring -> string)
+                         -> string
+                         -> string
 
 (* Executes a general regex-guided transformation over a string.  Matches
 'needle' against any part of 'haystack', splitting 'haystack' into matching and
@@ -74,7 +80,12 @@ evaluates to
     "_a_*x*_b_*x*__"
 *)
 val transform : string (* needle *)
-                -> (substring -> string) (* non-matching transformation *)
-                -> (match -> string) (* matching transformation *)
+                -> (string -> string)  (* non-matching transformation *)
+                -> (match string -> string)  (* matching transformation *)
                 -> string (* haystack *)
                 -> string
+val transform' : string
+                 -> (counted_substring -> string)
+                 -> (match counted_substring -> string)
+                 -> string
+                 -> string
