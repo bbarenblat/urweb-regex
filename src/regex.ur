@@ -20,19 +20,27 @@ fun concat (strings : list string) : string =
 
 (* Substrings and matches *)
 
-type substring = {Start : int, Len : int}
-type match = {Whole : substring, Groups : list substring}
+type counted_substring = {Start : int, Len : int}
+type match a = {Whole : a, Groups : list a}
 
-fun substring_offset (delta : int) (substring : substring) : substring =
+fun substring_offset (delta : int) (substring : counted_substring)
+    : counted_substring =
   {Start = substring.Start + delta, Len = substring.Len}
 
-fun match_offset (delta : int) (match : match) : match =
-  {Whole = substring_offset delta match.Whole,
-   Groups = List.mp (substring_offset delta) match.Groups}
+fun mp [a ::: Type] [b ::: Type] (f : a -> b) (match : match a) : match b =
+  {Whole = f match.Whole, Groups = List.mp f match.Groups}
+
+fun match_offset (delta : int)
+    : match counted_substring -> match counted_substring =
+  mp (substring_offset delta)
 
 (* Returns the index of the character just _after_ a match. *)
-fun after_match (match : match) : int =
+fun after_match (match : match counted_substring) : int =
   match.Whole.Start + match.Whole.Len
+
+fun get_substrings (haystack : string)
+    : match counted_substring -> match string =
+  mp (String.substring haystack)
 
 
 (* Unmarshaling FFI types *)
@@ -40,13 +48,13 @@ fun after_match (match : match) : int =
 structure FFI = Regex__FFI
 
 (* Unmarshals an 'FFI.substring_t' from C into Ur. *)
-fun unmarshal_substring (substring : FFI.substring_t) : substring =
+fun unmarshal_substring (substring : FFI.substring_t) : counted_substring =
   {Start = FFI.substring_start substring,
    Len = FFI.substring_length substring}
 
 (* Unmarshals an 'FFI.substring_list_t' from C into Ur. *)
 fun unmarshal_substring_list (substrings : FFI.substring_list_t)
-    : option match =
+    : option (match counted_substring) =
   case FFI.substring_list_length substrings of
       0 => None
     | n_groups =>
@@ -70,11 +78,14 @@ fun validate (regex : string) : string =
   then regex
   else error <xml>regex: Empty regex</xml>
 
-fun match needle haystack =
+fun match' needle haystack =
   unmarshal_substring_list (FFI.do_match (validate needle) haystack)
 
-fun all_matches needle haystack =
-  case match needle haystack of
+fun match needle haystack =
+  Option.mp (get_substrings haystack) (match' needle haystack)
+
+fun all_matches' needle haystack =
+  case match' needle haystack of
       None => []
     | Some match =>
       let
@@ -82,14 +93,17 @@ fun all_matches needle haystack =
       in
         match
           :: List.mp (match_offset remaining_start)
-                     (all_matches needle
+                     (all_matches' needle
                                   (String.suffix haystack remaining_start))
       end
 
-fun transform needle f_nomatch f_match haystack =
+fun all_matches needle haystack =
+  List.mp (get_substrings haystack) (all_matches' needle haystack)
+
+fun transform' needle f_nomatch f_match haystack =
   let
     val haystack_length = String.length haystack
-    val matches = all_matches needle haystack
+    val matches = all_matches' needle haystack
   in
     (* Handle the first nonmatching region. *)
     f_nomatch {Start = 0,
@@ -122,8 +136,20 @@ fun transform needle f_nomatch f_match haystack =
          matches)
   end
 
+fun transform needle f_nomatch f_match haystack =
+  transform' needle
+             (fn s => f_nomatch (String.substring haystack s))
+             (fn m => f_match (get_substrings haystack m))
+             haystack
+
+fun transform_matches' needle f_match haystack =
+  transform' needle (String.substring haystack) f_match haystack
+
 fun transform_matches needle f_match haystack =
-  transform needle (String.substring haystack) f_match haystack
+  transform' needle
+             (String.substring haystack)
+             (fn m => f_match (get_substrings haystack m))
+             haystack
 
 fun replace needle haystack replacement =
   transform_matches needle (fn _ => replacement) haystack
