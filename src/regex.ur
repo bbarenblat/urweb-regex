@@ -151,5 +151,5 @@ fun transform_matches needle f_match haystack =
              (fn m => f_match (get_substrings haystack m))
              haystack
 
-fun replace needle haystack replacement =
+fun replace needle replacement haystack =
   transform_matches needle (fn _ => replacement) haystack
