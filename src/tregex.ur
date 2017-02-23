@@ -4,7 +4,6 @@ type t = fn (r :: {Unit}) => {
 	    }
 
 fun escape s = let
-
     fun esc s =
 	case s of
 	    "" => ""

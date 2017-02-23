@@ -1,0 +1,6 @@
+library $REGEX
+debug
+rewrite url Test/*
+allow mime text/plain
+
+test
