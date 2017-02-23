@@ -1,5 +1,10 @@
 #                                                                   -*- conf -*-
 
+# exe/binary files
+.exe
+# testing (TAP)
+.tap
+
 # Editor backup files
 *~
 \#*
