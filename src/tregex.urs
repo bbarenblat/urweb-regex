@@ -9,6 +9,8 @@ val eol : t [] (* end of line: $ *)
 *)
 val any : t []
 val concat : r1 ::: {Unit} -> r2 ::: {Unit} -> [r1 ~ r2] =>
+    folder r1 ->
+    folder r2 ->
     t r1 -> t r2 -> t (r1 ++ r2)
 val star : r ::: {Unit} ->
     t r -> t r
@@ -70,25 +72,35 @@ also part of char_class
 
 also, assertions! (followed-by and not-followed-by)
 *)
-val alt : r ::: {Unit} -> s1 ::: {Unit} -> s2 ::: {Unit} -> [r ~ s1] => [r ~ s2] => [s1 ~ s2] =>
-    t (r ++ s1) -> t (r ++ s2) -> t (r ++ s1 ++ s2)
-val capture : r ::: {Unit} -> nm ::: Name -> [r ~ [nm]] =>
-    {nm : string} -> t r -> t (r ++ [nm])
+val alt : s1 ::: {Unit} -> s2 ::: {Unit} -> [s1 ~ s2] =>
+    folder s1 -> folder s2 ->
+    t s1 -> t s2 -> t (s1 ++ s2)
+val capture : r ::: {Unit} -> nm :: Name -> [r ~ [nm]] =>
+    folder r ->
+    t r -> t (r ++ [nm])
 
+val groups : r ::: {Unit} -> t r -> folder r -> $(map (fn _ => int) r)
 val show_tsregex : r ::: {Unit} -> show (t r)
+
+(* ****** ****** *)
 (*
-(* TODO: exec? see https://github.com/bbarenblat/urweb-regex/blob/master/src/regex.urs *)
 type match (r :: {Unit}) a = {Whole : a, Groups : $(map (fn _ => a) r)}
+
 (* just a single match *)
 val match : r ::: {Unit} -> string -> t r -> option (match r string)
-val match' : r ::: {Unit} -> string -> t r -> option (match r counted_substring)
+
+
+
+val match' : r ::: {Unit} -> string -> t r -> option (match r Regex.counted_substring)
 
 (* report all matches *)
 val all_matches : r ::: {Unit} -> string -> t r -> list (match r string)
-val all_matches' : r ::: {Unit} -> string -> t r -> list (match r counted_substring) 
+val all_matches' : r ::: {Unit} -> string -> t r -> list (match r Regex.counted_substring)
 
 (* replace all matches *)
-val replace : r ::: {Unit} -> $(map (fn _ => string) r)(*replacements*)
--> string(*haystack*) -> t r(*needle*) -> string(*new string*)
- *)
-		   
+val replace
+    : r ::: {Unit}
+      -> $(map (fn _ => string) r)(*replacements*)
+      -> string(*haystack*)
+      -> t r(*needle*) -> string(*new string*)
+*)		   
