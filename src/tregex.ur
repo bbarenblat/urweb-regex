@@ -151,11 +151,113 @@ http://lifesyntaxerrors.blogspot.com/2012/10/named-capturing-groups-in-javascrip
 useful unit-tests:
 
 https://github.com/sweirich/dth/blob/master/popl17/src/RegexpTest.hs
+ *)
 
+type counted_substring = {Start : int, Len : int}					
+con match = fn (r :: {Unit}) (a :: Type) => {Whole : a, Groups : $(map (fn _ => a) r)}
+
+fun substring_offset (delta : int) (substring : counted_substring)
+    : counted_substring =
+    {Start = substring.Start + delta, Len = substring.Len}
+
+fun match_mp [r ::: {Unit}]
+	     [a ::: Type]
+	     [b ::: Type]
+	     (f : a -> b)
+	     (fl : folder r)
+	     (match : match r a) : match r b =
+    {Whole = f match.Whole,
+     Groups =
+     @mp [fn _ => a] [fn _ => b] (fn [t] x => f x) fl match.Groups}
+
+fun match_offset
+	[r ::: {Unit}]
+	(delta : int)
+	(fl : folder r)
+	(m : match r counted_substring)
+    : match r counted_substring =
+    @match_mp (substring_offset delta) fl m
+
+(* Returns the index of the character just _after_ a match. *)
+fun after_match [r ::: {Unit}] (match : match r counted_substring) : int =
+  match.Whole.Start + match.Whole.Len
+
+fun get_substrings [r ::: {Unit}] (fl : folder r)
+		   (haystack : string) (m : match r counted_substring) : match r string =
+    @match_mp (String.substring haystack) fl m
+
+(* Unmarshaling FFI types *)
+
+structure FFI = Regex__FFI
+
+(* Unmarshals an 'FFI.substring_t' from C into Ur. *)
+fun unmarshal_substring (substring : FFI.substring_t) : counted_substring =
+  {Start = FFI.substring_start substring,
+   Len = FFI.substring_length substring}
+
+(* Unmarshals an 'FFI.substring_list_t' from C into Ur. *)
+fun
+unmarshal_substring_list
+    [r ::: {Unit}]
+    (fl : folder r)
+    (ngroups : int)
+    (groups : $(map (fn _ => int) r))
+    (substrings : FFI.substring_list_t)
+: option (match r counted_substring) =
+  let
+      (* go over groups: for each group, retrieve its value by index *)
+      val n = FFI.substring_list_length substrings
+  in
+      case n of
+	  0 => None
+	| n_groups =>
+	  if n_groups <> ngroups then error <xml>unmarshal_substring_list: mismatch of group counts, expected {[ngroups]}, got {[n_groups]}</xml>
+	  else
+	      Some {Whole = unmarshal_substring (FFI.substring_list_get substrings 0),
+		    Groups = @mp [fn _ => int] [fn _ => counted_substring]
+			      (fn [t ::: Unit] i =>
+				  unmarshal_substring (FFI.substring_list_get substrings (i+1)))
+			      fl
+			      groups
+		   }
+  end
+
+fun match' [r ::: {Unit}]
+	   (fl : folder r)
+	   (needle : t r)
+	   (haystack : string): option (match r counted_substring) =
+    @unmarshal_substring_list
+     fl
+     needle.NGroups
+     needle.Groups
+     (FFI.do_match needle.Expr haystack)
+
+fun match [r ::: {Unit}]
+	  (fl : folder r)
+	  (needle : t r)
+	  (haystack : string): option (match r string) =
+    let
+	val res = @match' fl needle haystack
+    in
+	case res of
+	    None => None
+	  | Some m => Some (@get_substrings fl haystack m)
+    end
+    
+(*			     
 fun match [r ::: {Unit}] (r: t r) (s : string): option (match r string) =
     let
 	val result = Regex.match r.Expr s
+    (* result.Whole,
+result.Groups is a list, from which we will be extracting stuff
+- and putting it into the record
+
+"a" :: "b" :: "c" :: []
+{A=0,B=2,C=1}
+==>
+{A="a",B="c",C="b"}
+ *)
     in
 	
     end
- *)
+*)

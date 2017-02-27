@@ -83,15 +83,16 @@ val groups : r ::: {Unit} -> t r -> folder r -> $(map (fn _ => int) r)
 val show_tsregex : r ::: {Unit} -> show (t r)
 
 (* ****** ****** *)
-(*
-type match (r :: {Unit}) a = {Whole : a, Groups : $(map (fn _ => a) r)}
+
+type counted_substring = {Start : int, Len : int}
+con match = fn (r :: {Unit}) (a :: Type) => {Whole : a, Groups : $(map (fn _ => a) r)}
 
 (* just a single match *)
-val match : r ::: {Unit} -> string -> t r -> option (match r string)
+val match : r ::: {Unit} -> folder r -> t r -> string -> option (match r string)
 
+val match' : r ::: {Unit} -> folder r -> t r -> string -> option (match r counted_substring)
 
-
-val match' : r ::: {Unit} -> string -> t r -> option (match r Regex.counted_substring)
+(*
 
 (* report all matches *)
 val all_matches : r ::: {Unit} -> string -> t r -> list (match r string)
