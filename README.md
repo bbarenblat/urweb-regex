@@ -27,3 +27,14 @@ autoconf
 ```
 
 Then do the usual `./configure && make && sudo make install`
+
+## Running tests
+
+You will probably have to add `/usr/local/lib` to `ldconfig`
+cache. This can be done as follows:
+
+```
+#!/bin/bash
+sudo bash -c 'echo "/usr/local/lib" >>/etc/ld.so.conf.d/usr-local-lib.conf'
+sudo ldconfig
+```

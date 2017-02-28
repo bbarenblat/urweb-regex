@@ -2,5 +2,6 @@ library $REGEX
 debug
 rewrite url Test/*
 allow mime text/plain
+monoInline 10
 
 test
