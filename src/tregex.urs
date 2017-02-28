@@ -92,16 +92,18 @@ val match : r ::: {Unit} -> folder r -> t r -> string -> option (match r string)
 
 val match' : r ::: {Unit} -> folder r -> t r -> string -> option (match r counted_substring)
 
-(*
-
 (* report all matches *)
-val all_matches : r ::: {Unit} -> string -> t r -> list (match r string)
-val all_matches' : r ::: {Unit} -> string -> t r -> list (match r Regex.counted_substring)
+val all_matches : r ::: {Unit} -> folder r -> t r -> string -> list (match r string)
+val all_matches' : r ::: {Unit} -> folder r -> t r -> string -> list (match r counted_substring)
 
+								(*
 (* replace all matches *)
 val replace
     : r ::: {Unit}
+      -> folder r
       -> $(map (fn _ => string) r)(*replacements*)
       -> string(*haystack*)
       -> t r(*needle*) -> string(*new string*)
-*)		   
+		   
+								 *)
+								

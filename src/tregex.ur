@@ -176,7 +176,9 @@ fun match_offset
 	(fl : folder r)
 	(m : match r counted_substring)
     : match r counted_substring =
-    @match_mp (substring_offset delta) fl m
+    {Whole = substring_offset delta m.Whole,
+     Groups =
+     @mp [fn _ => counted_substring] [fn _ => counted_substring] (fn [t] x => substring_offset delta x) fl m.Groups}
 
 (* Returns the index of the character just _after_ a match. *)
 fun after_match [r ::: {Unit}] (match : match r counted_substring) : int =
@@ -184,7 +186,9 @@ fun after_match [r ::: {Unit}] (match : match r counted_substring) : int =
 
 fun get_substrings [r ::: {Unit}] (fl : folder r)
 		   (haystack : string) (m : match r counted_substring) : match r string =
-    @match_mp (String.substring haystack) fl m
+    {Whole = String.substring haystack m.Whole,
+     Groups =
+     @mp [fn _ => counted_substring] [fn _ => string] (fn [t] x => String.substring haystack x) fl m.Groups}
 
 (* Unmarshaling FFI types *)
 
@@ -211,14 +215,22 @@ unmarshal_substring_list
       case n of
 	  0 => None
 	| n_groups =>
-	  if n_groups <> ngroups then error <xml>unmarshal_substring_list: mismatch of group counts, expected {[ngroups]}, got {[n_groups]}</xml>
+	  if n_groups <> (ngroups+1) then error <xml>unmarshal_substring_list: mismatch of group counts, expected {[ngroups]}, got {[n_groups]}</xml>
 	  else
 	      Some {Whole = unmarshal_substring (FFI.substring_list_get substrings 0),
-		    Groups = @mp [fn _ => int] [fn _ => counted_substring]
-			      (fn [t ::: Unit] i =>
-				  unmarshal_substring (FFI.substring_list_get substrings (i+1)))
-			      fl
-			      groups
+		    Groups =
+		    @foldUR [int] [fn r => $(map (fn _ => counted_substring) r)]
+		     (fn [nm ::_] [rest ::_] [[nm] ~ rest]
+				  (i : int)
+				  acc => let
+			     val ss = FFI.substring_list_get substrings (i+1)
+			     val v =  {Start = FFI.substring_start ss,  Len = FFI.substring_length ss}
+			 in
+			     acc ++ {nm = v}
+			 end)
+		     {}
+		     fl
+		     groups
 		   }
   end
 
@@ -244,20 +256,22 @@ fun match [r ::: {Unit}]
 	  | Some m => Some (@get_substrings fl haystack m)
     end
     
-(*			     
-fun match [r ::: {Unit}] (r: t r) (s : string): option (match r string) =
-    let
-	val result = Regex.match r.Expr s
-    (* result.Whole,
-result.Groups is a list, from which we will be extracting stuff
-- and putting it into the record
+fun all_matches' [r ::: {Unit}] (fl : folder r) (needle : t r) (haystack : string): list (match r counted_substring) =
+    case @match' fl needle haystack of
+	None => []
+      | Some match =>
+	let
+	    val remaining_start = after_match match
+	in
+	    match :: List.mp
+		  (fn x => @match_offset remaining_start fl x)
+		  (@all_matches' fl needle (String.suffix haystack remaining_start))
+	end
 
-"a" :: "b" :: "c" :: []
-{A=0,B=2,C=1}
-==>
-{A="a",B="c",C="b"}
- *)
-    in
-	
-    end
-*)
+fun all_matches [r ::: {Unit}]
+		(fl : folder r)
+		(needle : t r)
+		(haystack : string): list (match r string) =
+    List.mp (@get_substrings fl haystack) (@all_matches' fl needle haystack)
+
+													  

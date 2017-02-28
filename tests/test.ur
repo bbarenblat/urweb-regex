@@ -134,15 +134,13 @@ fun index (): transaction page =
 	))
 
 fun groups (): transaction page =
-    m <- return ((Tregex.match'
-		(concat (literal "a") (capture [#X] (literal "b")))
-		"ab") : option {Whole:counted_substring, Groups:{X:counted_substring}});
-    
+    m <- return (Tregex.match
+	     (concat (literal "a") (capture [#X] (literal "b")))
+	     "ab");
     case m of
-	None => return <xml>Failed: mismatch!</xml>
-      | Some {Whole = whole, Groups = {X = {Start=s,Len=l}}} => return <xml>Success? Whole match: {[whole.Start]} + {[whole.Len]}, group is {[s]} + {[l]}</xml>
-
-    (*
+	None => return <xml>Failed!</xml>
+      | Some {Whole = whole, Groups = {X = x}} => return <xml>Success: group X = {[x]}</xml>
+(*
     format_results
 	(tests_match_string (
 	 {E = concat (literal "a") (capture [#X] (literal "b")), R = "ab", G = {X="b"}, F = _},
@@ -150,7 +148,7 @@ fun groups (): transaction page =
 	 {E = concat (capture [#A] (literal "ab")) (concat (literal "c") (capture [#B] (literal "d"))), R = "abcd", G = {A="ab", B="d"}, F = _},
 	 {E = capture [#C] (concat (capture [#A] (literal "ab")) (concat (literal "c") (capture [#B] (literal "d")))), R = "abcd", G = {A="ab", B="d", C="abcd"}, F = _},
 	 {E = capture [#A] (concat (literal "z") (capture [#B] (literal "a"))), R = "za", G = {A="za", B="a"}, F = _}
-	 )) *)
+	 ))*)
 
 fun sum [t] (_ : num t) [fs ::: {Unit}] (fl : folder fs) (x : $(mapU t fs)) =
     @foldUR [t] [fn _ => t]
