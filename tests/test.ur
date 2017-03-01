@@ -120,8 +120,30 @@ in
        (count, "") [r] fl x).2
 end
 
+(*  ****** ****** *)
+
+fun
+match_eq [r ::: {Unit}] (fl : folder r) (x : t r) (s : string) (grp : $(map (fn _ => string) r)) (i: int): string =
+let
+    val m = @Tregex.match fl x s
+    fun show_group x = "[" ^ show x ^ "]"
+in
+    case m of
+	None => "not ok " ^ show i ^ " got None, expecting " ^ @showRecord fl show_group grp
+      | Some {Whole = whole, Groups = g} =>
+	if @equal eq_string fl g grp
+	then "ok " ^ show i ^ " matches"
+	else "not ok " ^ show i ^ " mismatches: groups are ["
+	     ^ @showRecord fl show_group g ^ "] but should be ["
+	     ^ @showRecord fl show_group grp ^ "]"
+end
+
+(*  ****** ****** *)
+
 fun format_results (res: string): transaction page =
     returnBlob (textBlob res) (blessMime "text/plain")
+
+(*  ****** ****** *)
 
 fun index (): transaction page =
     format_results
@@ -133,29 +155,31 @@ fun index (): transaction page =
 	 {E = capture [#A] (concat (literal "z") (capture [#B] (literal "a"))), R = "(z(a))", G = {A=0, B=1}, F = _}
 	))
 
+(*  ****** ****** *)
+
 fun groups (): transaction page =
-    m <- return (Tregex.match
-	     (concat (literal "a") (capture [#X] (literal "b")))
-	     "ab");
-    case m of
-	None => return <xml>Failed!</xml>
-      | Some {Whole = whole, Groups = {X = x}} => return <xml>Success: group X = {[x]}</xml>
-(*
-    format_results
-	(tests_match_string (
-	 {E = concat (literal "a") (capture [#X] (literal "b")), R = "ab", G = {X="b"}, F = _},
-	 {E = alt (capture [#X] (literal "abcdef")) (concat (literal "Z") any), R = "abcdef", G = {X="abcdef"}, F = _},
-	 {E = concat (capture [#A] (literal "ab")) (concat (literal "c") (capture [#B] (literal "d"))), R = "abcd", G = {A="ab", B="d"}, F = _},
-	 {E = capture [#C] (concat (capture [#A] (literal "ab")) (concat (literal "c") (capture [#B] (literal "d")))), R = "abcd", G = {A="ab", B="d", C="abcd"}, F = _},
-	 {E = capture [#A] (concat (literal "z") (capture [#B] (literal "a"))), R = "za", G = {A="za", B="a"}, F = _}
-	 ))*)
-
-fun sum [t] (_ : num t) [fs ::: {Unit}] (fl : folder fs) (x : $(mapU t fs)) =
-    @foldUR [t] [fn _ => t]
-     (fn [nm :: Name] [rest :: {Unit}] [[nm] ~ rest] n acc => n + acc)
-     zero fl x
-
-fun testfold (): transaction page = return <xml><body>
-  {[sum {A = 0, B = 1}]}<br/>
-  {[sum {C = 2.1, D = 3.2, E = 4.3}]}
-</body></xml>    
+    s1 <- return (
+	  match_eq (concat (literal "a") (capture [#X] (literal "b"))) "ab" {X = "b"} 1
+	  );
+    s2 <- return (
+	  let
+	      (* build it bottom-up; may reuse expression parts for free! *)
+	      val d = one_of c_digit
+	      val re = capture [#Y] (repeat d (Rexactly 4))
+	      val re = concat re (literal "-")
+	      val re = concat re (capture [#M] (repeat d (Rexactly 2)))
+	      val re = concat re (literal "-")
+	      val re = concat re (capture [#D] (repeat d (Rexactly 2)))
+	  in
+	      match_eq re "1999-02-03" {Y = "1999", M = "02", D = "03"} 2
+	  end);
+    s3 <- return (
+	  let
+	      val re = capture [#Id] (plus (one_of c_word))
+	      val re = concat re (literal ":")
+	      val re = concat re (plus (one_of c_whitespace))
+	      val re = concat re (capture [#Value] (plus (one_of c_digit)))
+	  in
+	      match_eq re "identifier: 12345" {Id = "identifier", Value = "12345"} 3
+	  end);
+    format_results (s1 ^ "\n" ^ s2 ^ "\n" ^ s3)
