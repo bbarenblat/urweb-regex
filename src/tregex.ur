@@ -23,6 +23,8 @@ in
     esc s
 end
 
+(* ****** ****** *)
+
 (*
 (ab)c(d)
 --> by order, left to right?
@@ -91,6 +93,8 @@ shift
 		       fl
 		       c
 
+(* ****** ****** *)
+		       
 fun literal s = {Groups = {}, NGroups = 0, Expr = escape s}
 
 val any = {Groups = {}, NGroups = 0, Expr = "."}
@@ -103,9 +107,78 @@ fun concat [r1 ::: {Unit}] [r2 ::: {Unit}] [r1 ~ r2]
      NGroups = x.NGroups + y.NGroups,
      Expr = x.Expr ^ y.Expr}
 
+(* ****** ****** *)
+
+datatype repetition =
+	 Rexactly of int (* {N} *)
+       | Rgte of int (* {N,} *)
+       | Rlte of int (* {,N} *)
+       | Rbtw of (int * int) (* {N,M} *)
+
+fun repeat [r ::: {Unit}] (x : t r) (rep : repetition): t r =
+    {Groups = x.Groups,
+     NGroups = x.NGroups,
+     Expr = "(?:" ^ x.Expr ^ "){" ^
+	    (case rep of
+		 Rexactly n => show n
+	       | Rgte n => show n ^ ","
+	       | Rlte n => "," ^ show n
+	       | Rbtw (m, n) => show m ^ "," ^ show n
+	    ) ^ "}"}
+fun repeat_nongreedy [r ::: {Unit}] (x : t r) (rep : repetition): t r =
+    let
+	val res = repeat x rep
+    in
+	{Groups = res.Groups, NGroups = res.NGroups, Expr = res.Expr ^ "?"}
+    end
+
 fun star [r ::: {Unit}] (x: t r): t r =
     {Groups = x.Groups, NGroups = x.NGroups, Expr = "(?:" ^ x.Expr ^ ")*"}
+fun star_nongreedy [r ::: {Unit}] (x: t r): t r =
+    let
+	val res = star x
+    in
+	{Groups = res.Groups, NGroups = res.NGroups, Expr = res.Expr ^ "?"}
+    end
+    
+fun plus [r ::: {Unit}] (x: t r): t r =
+    {Groups = x.Groups, NGroups = x.NGroups, Expr = "(?:" ^ x.Expr ^ ")+"}
+fun plus_nongreedy [r ::: {Unit}] (x: t r): t r =
+    let
+	val res = plus x
+    in
+	{Groups = res.Groups, NGroups = res.NGroups, Expr = res.Expr ^ "?"}
+    end
 
+(* ****** ****** *)
+    
+type char_class = string
+
+fun c_enum (s : string) : char_class = escape s
+
+fun c_rng (x : {Min : char, Max : char}) : char_class =
+    escape (String.str x.Min) ^ "-" ^ escape (String.str x.Max)
+
+fun c_join [r ::: {Unit}] (fl : folder r) (cs : $(mapU char_class r)) : char_class =
+    @foldUR
+     [char_class] [fn r => char_class]
+     (fn [nm ::_] [rest ::_] [[nm] ~ rest] (cc : char_class) acc => acc ^ cc)
+     ""
+     fl
+     cs
+
+val c_digit = "\\d"
+val c_whitespace = "\\s"
+val c_word = "\\w"
+val c_boundary = "[\\b]"
+
+fun c_char (c : char) = escape (String.str c)
+
+fun one_of (cc : char_class) : t [] = {Groups = {}, NGroups = 0, Expr = "[" ^ cc ^ "]"}
+fun none_of (cc : char_class) : t [] = {Groups = {}, NGroups = 0, Expr = "[^" ^ cc ^ "]"}
+
+(* ****** ****** *)
+			
 fun projs [keep ::: {Type}] [drop ::: {Type}] [keep ~ drop] (xs : $(keep ++ drop)): $keep = xs --- drop
 
 fun alt [s1 ::: {Unit}] [s2 ::: {Unit}] [s1 ~ s2]
@@ -115,12 +188,8 @@ fun alt [s1 ::: {Unit}] [s2 ::: {Unit}] [s1 ~ s2]
      NGroups = x.NGroups + y.NGroups,
      Expr = "(?:" ^ x.Expr ^ ")|(?:" ^ y.Expr ^ ")"}
 
-(*
-additional cases?
-- character classes, ranges: [a-Z]
-https://www.debuggex.com/
-*)
-
+(* ****** ****** *)
+    
 fun capture
 	[r ::: {Unit}] [nm :: Name] [r ~ [nm]]
 	(fl : folder r)
@@ -129,29 +198,13 @@ fun capture
      NGroups = y.NGroups + 1,
      Expr = "(" ^ y.Expr ^ ")"}
 
-(*
-utility stuff?
-eq, ord, show, sqlify instances for regexp (so we can save them to db...)
-something else?
-
-eq, ord <-- nope. no easy way to compare regexes
-sqlify <-- nope. don't put into db!
- *)
+(* ****** ****** *)
 
 fun groups [r ::: {Unit}] (x : t r) (fl : folder r): $(map (fn _ => int) r) = x.Groups
 
 val show_tsregex = fn [r ::: {Unit}] => mkShow (fn x => x.Expr)
 
-(*
-problem: JS does not support named groups out of the box
-fix:
-http://lifesyntaxerrors.blogspot.com/2012/10/named-capturing-groups-in-javascript.html
-*)
-(*
-useful unit-tests:
-
-https://github.com/sweirich/dth/blob/master/popl17/src/RegexpTest.hs
- *)
+(* ****** ****** *)
 
 type counted_substring = {Start : int, Len : int}					
 con match = fn (r :: {Unit}) (a :: Type) => {Whole : a, Groups : $(map (fn _ => a) r)}
