@@ -154,22 +154,44 @@ end
 
 fun format_results (res: string): transaction page =
     returnBlob (textBlob res) (blessMime "text/plain")
+    (*
+fun format_results_client (res : transaction string) : transaction page =
+    return <xml>
+      <head>
+	<title>Test</title>
+      </head>
+      <body>
+	<active code={r <- res; return <xml><pre>{[r]}</pre></xml>}/>
+    </body>
+</xml>*)
+
 
 (*  ****** ****** *)
 
+fun index_tests () =
+    tests (
+    {E = concat (literal "a") (capture [#X] (literal "b")), R = "a(b)", G = {X=0}, F = _},
+    {E = alt (capture [#X] (literal "abcdef")) (concat (literal "Z") any), R = "(?:(abcdef))|(?:Z.)", G = {X=0}, F = _},
+    {E = concat (capture [#A] (literal "ab")) (concat (literal "c") (capture [#B] (literal "d"))), R = "(ab)c(d)", G = {A=0, B=1}, F = _},
+    {E = capture [#C] (concat (capture [#A] (literal "ab")) (concat (literal "c") (capture [#B] (literal "d")))), R = "((ab)c(d))", G = {A=1, B=2, C=0}, F = _},
+    {E = capture [#A] (concat (literal "z") (capture [#B] (literal "a"))), R = "(z(a))", G = {A=0, B=1}, F = _})
+	
 fun index (): transaction page =
-    format_results
-	(tests (
-	 {E = concat (literal "a") (capture [#X] (literal "b")), R = "a(b)", G = {X=0}, F = _},
-	 {E = alt (capture [#X] (literal "abcdef")) (concat (literal "Z") any), R = "(?:(abcdef))|(?:Z.)", G = {X=0}, F = _},
-	 {E = concat (capture [#A] (literal "ab")) (concat (literal "c") (capture [#B] (literal "d"))), R = "(ab)c(d)", G = {A=0, B=1}, F = _},
-	 {E = capture [#C] (concat (capture [#A] (literal "ab")) (concat (literal "c") (capture [#B] (literal "d")))), R = "((ab)c(d))", G = {A=1, B=2, C=0}, F = _},
-	 {E = capture [#A] (concat (literal "z") (capture [#B] (literal "a"))), R = "(z(a))", G = {A=0, B=1}, F = _}
-	))
+    format_results (index_tests ())
+fun index_client (): transaction page =
+(*    format_results_client (return (index_tests ()))*)
+    return <xml>
+      <head>
+	<title>Test</title>
+      </head>
+      <body>
+	<active code={let val r = index_tests () in return <xml><pre>{[r]}</pre></xml> end}/>
+    </body>
+</xml>
 
 (*  ****** ****** *)
 
-fun groups (): transaction page =
+fun groups_test () =
     s1 <- return (
 	  match_eq (concat (literal "a") (capture [#X] (literal "b"))) "ab" {X = Some "b"} 1
 	  );
@@ -201,4 +223,19 @@ fun groups (): transaction page =
 	  in
 	      match_eq re "b" {A = None} 4
 	  end);
-    format_results (s1 ^ "\n" ^ s2 ^ "\n" ^ s3 ^ "\n" ^ s4)
+    return (s1 ^ "\n" ^ s2 ^ "\n" ^ s3 ^ "\n" ^ s4)    
+    
+fun groups (): transaction page =
+    res <- groups_test ();
+    format_results res
+
+fun groups_client (): transaction page =
+(*    format_results_client (groups_test ())*)
+    return <xml>
+      <head>
+	<title>Test</title>
+      </head>
+      <body>
+	<active code={r <- groups_test (); return <xml><pre>{[r]}</pre></xml>}/>
+    </body>
+</xml>
