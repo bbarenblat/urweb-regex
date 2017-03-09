@@ -73,16 +73,22 @@ in
        (count, "") [r] fl x).2
 end
 
+val eq_option_string = @Option.eq eq_string
+val show_option_string = mkShow (fn x =>
+				    case x of
+					None => "None"
+				      | Some x => "Some([" ^ x ^ "])")
+
 fun
-test_match_string [r ::: {Unit}] (info: test_eq string r) (i: int): string =
+test_match_string [r ::: {Unit}] (info: test_eq (option string) r) (i: int): string =
 let
     val m = @Tregex.match info.F info.E info.R
-    fun show_group x = "[" ^ show x ^ "]"
+    fun show_group x = @show show_option_string x
 in
     case m of
 	None => "not ok " ^ show i ^ " got None, expecting " ^ @showRecord info.F show_group info.G
       | Some {Whole = whole, Groups = g} =>
-	if @equal eq_string info.F g info.G
+	if @equal eq_option_string info.F g info.G
 	then "ok " ^ show i ^ " matches"
 	else "not ok " ^ show i ^ " mismatches: groups are ["
 	     ^ @showRecord info.F show_group g ^ "] but should be ["
@@ -91,26 +97,26 @@ end
 
 fun
 tests_match_string [r ::: {{Unit}}]
-      (x : $(map (test_eq string) r))
+      (x : $(map (test_eq (option string)) r))
       (fl : folder r) = let
     val count =
 	@@Top.foldR
-	  [test_eq string] [fn r => int]
+	  [test_eq (option string)] [fn r => int]
 	  (fn [nm :: Name] [a :: {Unit}] [rest :: {{Unit}}] [[nm] ~ rest]
-			   (g : test_eq string a)
+			   (g : test_eq (option string) a)
 			   (f : int) => f+1)
 	  0
 	  [r] fl x
 in
     "1.." ^ (show count) ^ "\n" ^
     (@@Top.foldR
-       [test_eq string]
+       [test_eq (option string)]
        [fn r => int * string]
        (fn [nm :: Name]
 	       [a :: {Unit}]
 	       [rest :: {{Unit}}]
 	       [[nm] ~ rest]
-	       (g : test_eq string a)
+	       (g : test_eq (option string) a)
 	       (f : int * string) =>
 	   let
 	       val res = @test_match_string g f.1
@@ -123,15 +129,21 @@ end
 (*  ****** ****** *)
 
 fun
-match_eq [r ::: {Unit}] (fl : folder r) (x : t r) (s : string) (grp : $(map (fn _ => string) r)) (i: int): string =
+match_eq
+    [r ::: {Unit}]
+    (fl : folder r)
+    (x : t r)
+    (s : string)
+    (grp : $(map (fn _ => option string) r))
+    (i: int): string =
 let
     val m = @Tregex.match fl x s
-    fun show_group x = "[" ^ show x ^ "]"
+    fun show_group x = @show show_option_string x
 in
     case m of
 	None => "not ok " ^ show i ^ " got None, expecting " ^ @showRecord fl show_group grp
       | Some {Whole = whole, Groups = g} =>
-	if @equal eq_string fl g grp
+	if @equal eq_option_string fl g grp
 	then "ok " ^ show i ^ " matches"
 	else "not ok " ^ show i ^ " mismatches: groups are ["
 	     ^ @showRecord fl show_group g ^ "] but should be ["
@@ -159,7 +171,7 @@ fun index (): transaction page =
 
 fun groups (): transaction page =
     s1 <- return (
-	  match_eq (concat (literal "a") (capture [#X] (literal "b"))) "ab" {X = "b"} 1
+	  match_eq (concat (literal "a") (capture [#X] (literal "b"))) "ab" {X = Some "b"} 1
 	  );
     s2 <- return (
 	  let
@@ -171,7 +183,7 @@ fun groups (): transaction page =
 	      val re = concat re (literal "-")
 	      val re = concat re (capture [#D] (repeat d (Rexactly 2)))
 	  in
-	      match_eq re "1999-02-03" {Y = "1999", M = "02", D = "03"} 2
+	      match_eq re "1999-02-03" {Y = Some "1999", M = Some "02", D = Some "03"} 2
 	  end);
     s3 <- return (
 	  let
@@ -180,6 +192,13 @@ fun groups (): transaction page =
 	      val re = concat re (plus (one_of c_whitespace))
 	      val re = concat re (capture [#Value] (plus (one_of c_digit)))
 	  in
-	      match_eq re "identifier: 12345" {Id = "identifier", Value = "12345"} 3
+	      match_eq re "identifier: 12345" {Id = Some "identifier", Value = Some "12345"} 3
 	  end);
-    format_results (s1 ^ "\n" ^ s2 ^ "\n" ^ s3)
+    s4 <- return (
+	  let
+	      val re = capture [#A] (literal "a")
+	      val re = concat (opt re) (literal "b")
+	  in
+	      match_eq re "b" {A = None} 4
+	  end);
+    format_results (s1 ^ "\n" ^ s2 ^ "\n" ^ s3 ^ "\n" ^ s4)

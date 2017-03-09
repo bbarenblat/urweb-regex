@@ -109,6 +109,11 @@ fun concat [r1 ::: {Unit}] [r2 ::: {Unit}] [r1 ~ r2]
 
 (* ****** ****** *)
 
+fun opt [r ::: {Unit}] (x : t r) : t r =
+    {Groups = x.Groups,
+     NGroups = x.NGroups,
+     Expr = "(?:" ^ x.Expr ^")?"}
+
 datatype repetition =
 	 Rexactly of int (* {N} *)
        | Rgte of int (* {N,} *)
@@ -238,10 +243,17 @@ fun after_match [r ::: {Unit}] (match : match r counted_substring) : int =
   match.Whole.Start + match.Whole.Len
 
 fun get_substrings [r ::: {Unit}] (fl : folder r)
-		   (haystack : string) (m : match r counted_substring) : match r string =
-    {Whole = String.substring haystack m.Whole,
+		   (haystack : string) (m : match r counted_substring) : match r (option string) =
+    {Whole =
+     if m.Whole.Len = 0 then None
+     else Some (String.substring haystack m.Whole),
      Groups =
-     @mp [fn _ => counted_substring] [fn _ => string] (fn [t] x => String.substring haystack x) fl m.Groups}
+     @mp
+      [fn _ => counted_substring] [fn _ => option string]
+      (fn [t] x =>
+	  if x.Len = 0 then None
+	  else Some (String.substring haystack x))
+      fl m.Groups}
 
 (* Unmarshaling FFI types *)
 
@@ -300,7 +312,7 @@ fun match' [r ::: {Unit}]
 fun match [r ::: {Unit}]
 	  (fl : folder r)
 	  (needle : t r)
-	  (haystack : string): option (match r string) =
+	  (haystack : string): option (match r (option string)) =
     let
 	val res = @match' fl needle haystack
     in
@@ -324,7 +336,7 @@ fun all_matches' [r ::: {Unit}] (fl : folder r) (needle : t r) (haystack : strin
 fun all_matches [r ::: {Unit}]
 		(fl : folder r)
 		(needle : t r)
-		(haystack : string): list (match r string) =
+		(haystack : string): list (match r (option string)) =
     List.mp (@get_substrings fl haystack) (@all_matches' fl needle haystack)
 
 													  

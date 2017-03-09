@@ -20,6 +20,8 @@ val concat : r1 ::: {Unit} -> r2 ::: {Unit} -> [r1 ~ r2] =>
 
 (* ****** ****** *)
 
+val opt : r ::: {Unit} -> t r -> t r
+
 datatype repetition =
 	 Rexactly of int (* {N} *)
        | Rgte of int (* {N,} *)
@@ -69,12 +71,12 @@ type counted_substring = {Start : int, Len : int}
 con match = fn (r :: {Unit}) (a :: Type) => {Whole : a, Groups : $(map (fn _ => a) r)}
 
 (* just a single match *)
-val match : r ::: {Unit} -> folder r -> t r -> string -> option (match r string)
+val match : r ::: {Unit} -> folder r -> t r -> string -> option (match r (option string))
 
 val match' : r ::: {Unit} -> folder r -> t r -> string -> option (match r counted_substring)
 
 (* report all matches *)
-val all_matches : r ::: {Unit} -> folder r -> t r -> string -> list (match r string)
+val all_matches : r ::: {Unit} -> folder r -> t r -> string -> list (match r (option string))
 val all_matches' : r ::: {Unit} -> folder r -> t r -> string -> list (match r counted_substring)
 
 								(*
