@@ -3,5 +3,6 @@ debug
 rewrite url Test/*
 allow mime text/plain
 monoInline 10
+#clientOnly Test.format_results_client
 
 test
