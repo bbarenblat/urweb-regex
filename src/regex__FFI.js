@@ -44,7 +44,7 @@ doMatch: function(needle_string, haystack) {
   if (result) {
     for (var i = 0; i < result.length; i++) {
       result[i] = {start: haystack.indexOf(result[i]),
-                   length: result[i].length};
+                   length: result[i] !== undefined? result[i].length : 0};
     }
   } else {
     result = []
